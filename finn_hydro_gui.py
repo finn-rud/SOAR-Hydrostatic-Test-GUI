@@ -1,22 +1,41 @@
 import sys
 import random
+import time
 from collections import deque
-from unicodedata import name
 from PyQt6.QtWidgets import QApplication, QGridLayout, QMainWindow, QPushButton, QWidget, QVBoxLayout
 from PyQt6.QtCore import QTimer
 import pyqtgraph as pg
 
+#creates a class for the plots so that they can be easily replicated
 class PressurePlot(pg.PlotWidget):
     def __init__(self,name):
         super().__init__()
+
+        self.recent = deque(maxlen=20)
         self.setTitle(name)
         self.curve = self.plot()
         self.data = deque(maxlen=200)
+        self.name = name
 
-    def add_point(self, new_point):
-        self.data.append(new_point)
+#sets axis labels and shows the grid
+        self.setLabel("left", "Pressure", units="psi")
+        self.setLabel("bottom", "Time", units="s")
+        self.showGrid(x=True,y=True)
+
+#assigns a time to each data point
+        self.times = deque(maxlen=200)
+
+
+    def add_point(self, t, reading):
+        self.data.append(reading)
           # adds the new variable value to the data deque
-        self.curve.setData(list(self.data))
+        self.recent.append(reading) #makes a deque that contains the values from the last second
+        recent_avg=sum(self.recent)/len(self.recent) #averages these values to give a readable current display value for the plots
+        self.setTitle(f"{self.name}: {recent_avg: .2f} psi")
+          # adds the new variable value to the data deque
+        self.times.append(t)
+          #adds a time value for each datapoint for when it is created
+        self.curve.setData(list(self.times),list(self.data))
             # first converts the deque to a list, then calls the setData method whi
 
 
@@ -26,7 +45,8 @@ class TestStandGUI(QMainWindow):
         super().__init__()
         self.setWindowTitle("Test Stand GUI")
 
-# makes the plot widget
+        self.start_time = time.time() #sets the start time when the GUI is activated (for later use)
+# makes the plot widgets
        
         self.plot1 = PressurePlot("P1")
         self.plot2 = PressurePlot("P2")
@@ -74,11 +94,18 @@ class TestStandGUI(QMainWindow):
 
 # makes the method that runs the point updates
     def update_plot(self):
+
+        t = time.time() - self.start_time #sets the time for each plot point
+
         # gets the data and puts it into a variable
-        self.plot1.add_point(random.random())
-        self.plot2.add_point(random.random())
-        self.plot3.add_point(random.random())
+        self.plot1.add_point(t, random.random())
+        self.plot2.add_point(t, random.random())
+        self.plot3.add_point(t, random.random())
         # first converts the deque to a list, then calls the setData method which tells the curve attribute to redraw itself with the new numbers
+
+        
+        
+
 
 #toggle method for the arm button
 #changes the Arm state based on whether the buttons toggled
