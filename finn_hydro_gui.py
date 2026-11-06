@@ -1,6 +1,8 @@
 import sys
 import random
 import time
+import csv
+from datetime import datetime
 from collections import deque
 from PyQt6.QtWidgets import QApplication, QGridLayout, QMainWindow, QPushButton, QWidget, QVBoxLayout
 from PyQt6.QtCore import QTimer
@@ -84,6 +86,12 @@ class TestStandGUI(QMainWindow):
         self.setCentralWidget(container)
         # puts the plot in the window
 
+#data logging
+        filename = datetime.now().strftime("test_%Y-%m-%d_%Hh%Mm%Ss.csv")
+        self.log_file = open(filename, "w", newline="") #opens a new file and gets ready to write to it
+        self.writer = csv.writer(self.log_file) #creates the writer object that will write the data in CSV format
+        self.writer.writerow(["time_s", "P1_psi", "P2_psi", "P3_psi"]) #writes the header row using the writer object
+
 # makes the timer
         self.timer = QTimer()
         self.timer.timeout.connect(self.update_plot)
@@ -96,15 +104,21 @@ class TestStandGUI(QMainWindow):
     def update_plot(self):
 
         t = time.time() - self.start_time #sets the time for each plot point
-
+        p1,p2,p3 = random.random(),random.random(),random.random() #sets variables for data points
         # gets the data and puts it into a variable
-        self.plot1.add_point(t, random.random())
-        self.plot2.add_point(t, random.random())
-        self.plot3.add_point(t, random.random())
+        self.plot1.add_point(t, p1)
+        self.plot2.add_point(t, p2)
+        self.plot3.add_point(t, p3)
         # first converts the deque to a list, then calls the setData method which tells the curve attribute to redraw itself with the new numbers
 
-        
-        
+        self.writer.writerow([t,p1,p2,p3]) #writes the data from each plot into the csv file created eariler
+        self.log_file.flush() #makes sure all data gets written to the file immediately to avoid potential dataloss in case of a crash
+
+#closes the file once we're done with it
+    def closeEvent(self,event):
+        self.timer.stop()
+        self.log_file.close()
+        super().closeEvent(event)
 
 
 #toggle method for the arm button
